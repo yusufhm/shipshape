@@ -36,6 +36,9 @@ func (p *BaseAnalyser) GetResult() result.Result {
 	if p.Description != "" && p.Result.Name != p.Description {
 		p.Result.Name = p.Description
 	}
+	if p.Severity != "" {
+		p.Result.Severity = p.Severity
+	}
 	return p.Result
 }
 
