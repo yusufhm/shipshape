@@ -46,13 +46,24 @@ func ParseConfig(raw map[string]interface{}, rl *result.ResultList) {
 }
 
 func OutputAll(rl *result.ResultList, w io.Writer) error {
-	for _, p := range Outputters {
-		buf, err := p.Output(rl)
+	// Only write stdout outputter results to stdout
+	if stdout, ok := Outputters["stdout"]; ok {
+		buf, err := stdout.Output(rl)
 		if err != nil {
 			return err
 		}
 
 		if _, err := w.Write(buf); err != nil {
+			return err
+		}
+	}
+
+	// Process other outputters (like file) without writing to stdout
+	for name, p := range Outputters {
+		if name == "stdout" {
+			continue
+		}
+		if _, err := p.Output(rl); err != nil {
 			return err
 		}
 	}
