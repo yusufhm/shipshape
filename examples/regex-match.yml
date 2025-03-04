@@ -14,3 +14,10 @@ analyse:
       description: Lagoon logs module is not enabled
       input: module-lagoon_logs
       pattern: "^0$"
+
+output:
+  stdout:
+    format: table
+  file:
+    - path: results.junit
+      format: junit

@@ -1,1 +1,62 @@
 package output
+
+import (
+	"bytes"
+	"encoding/json"
+	"fmt"
+	"os"
+	"path/filepath"
+
+	"github.com/salsadigitalauorg/shipshape/pkg/result"
+)
+
+type File struct {
+	// Plugin-specific fields.
+	Path   string `yaml:"path"`
+	Format string `yaml:"format"`
+}
+
+var f = &File{}
+
+func init() {
+	// Register the file outputter
+	Outputters["file"] = f
+}
+
+func (p *File) Output(rl *result.ResultList) ([]byte, error) {
+	var buf bytes.Buffer
+	switch p.Format {
+	case "pretty":
+		s := &Stdout{}
+		s.Pretty(rl, &buf)
+	case "table":
+		s := &Stdout{}
+		s.Table(rl, &buf)
+	case "json":
+		data, err := json.Marshal(rl)
+		if err != nil {
+			return nil, fmt.Errorf("unable to convert result to json: %+v", err)
+		}
+		fmt.Fprintln(&buf, string(data))
+	case "junit":
+		s := &Stdout{}
+		s.JUnit(rl, &buf)
+	default:
+		return nil, fmt.Errorf("unsupported output format: %s", p.Format)
+	}
+
+	// Create directory if it doesn't exist
+	dir := filepath.Dir(p.Path)
+	if dir != "." {
+		if err := os.MkdirAll(dir, 0755); err != nil {
+			return nil, fmt.Errorf("failed to create output directory: %v", err)
+		}
+	}
+
+	// Write to file
+	if err := os.WriteFile(p.Path, buf.Bytes(), 0644); err != nil {
+		return nil, fmt.Errorf("failed to write output file: %v", err)
+	}
+
+	return buf.Bytes(), nil
+}
