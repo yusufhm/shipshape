@@ -63,8 +63,13 @@ func OutputAll(rl *result.ResultList, w io.Writer) error {
 		if name == "stdout" {
 			continue
 		}
-		if _, err := p.Output(rl); err != nil {
+		buf, err := p.Output(rl)
+		if err != nil {
 			return err
+		}
+		// Skip if the outputter returned nil (e.g., file outputter with no path)
+		if buf == nil {
+			continue
 		}
 	}
 	return nil

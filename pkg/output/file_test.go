@@ -15,10 +15,12 @@ import (
 
 func TestFileOutput(t *testing.T) {
 	tt := []struct {
-		name     string
-		file     *File
-		rl       *result.ResultList
-		expected string
+		name        string
+		file        *File
+		rl          *result.ResultList
+		expected    string
+		expectError bool
+		expectNil   bool
 	}{
 		{
 			name: "noResult",
@@ -26,8 +28,10 @@ func TestFileOutput(t *testing.T) {
 				Path:   "testdata/pretty.txt",
 				Format: "pretty",
 			},
-			rl:       &result.ResultList{},
-			expected: "No result available; ensure your shipshape.yml is configured correctly.\n",
+			rl:          &result.ResultList{},
+			expected:    "No result available; ensure your shipshape.yml is configured correctly.\n",
+			expectError: false,
+			expectNil:   false,
 		},
 		{
 			name: "pretty format with passes",
@@ -43,7 +47,9 @@ func TestFileOutput(t *testing.T) {
 					},
 				},
 			},
-			expected: "Ship is in top shape; no breach detected!\n",
+			expected:    "Ship is in top shape; no breach detected!\n",
+			expectError: false,
+			expectNil:   false,
 		},
 		{
 			name: "pretty format with breaches",
@@ -62,7 +68,9 @@ func TestFileOutput(t *testing.T) {
 					},
 				},
 			},
-			expected: "# Breaches were detected\n\n  ### test-check\n     -- Fail b\n\n",
+			expected:    "# Breaches were detected\n\n  ### test-check\n     -- Fail b\n\n",
+			expectError: false,
+			expectNil:   false,
 		},
 		{
 			name: "table format with mixed results",
@@ -90,6 +98,8 @@ func TestFileOutput(t *testing.T) {
 				"a      Pass     Pass a    \n" +
 				"                Pass ab   \n" +
 				"b      Fail               Fail b\n",
+			expectError: false,
+			expectNil:   false,
 		},
 		{
 			name: "json format with remediation",
@@ -116,7 +126,9 @@ func TestFileOutput(t *testing.T) {
 				RemediationPerformed: true,
 				RemediationTotals:    map[string]uint32{"successful": 1},
 			},
-			expected: `{"policies":null,"remediation-performed":true,"total-checks":0,"total-breaches":0,"remediation-totals":{"successful":1},"check-count-by-type":null,"breach-count-by-type":null,"breach-count-by-severity":null,"results":[{"name":"test-check","severity":"","check-type":"","passes":null,"breaches":[{"breach-type":"","check-type":"","check-name":"","severity":"","value":"Fail b","remediation":{"Status":"success","Messages":["fixed 1"]}}],"warnings":null,"status":"Fail","remediation-status":""}]}` + "\n",
+			expected:    `{"policies":null,"remediation-performed":true,"total-checks":0,"total-breaches":0,"remediation-totals":{"successful":1},"check-count-by-type":null,"breach-count-by-type":null,"breach-count-by-severity":null,"results":[{"name":"test-check","severity":"","check-type":"","passes":null,"breaches":[{"breach-type":"","check-type":"","check-name":"","severity":"","value":"Fail b","remediation":{"Status":"success","Messages":["fixed 1"]}}],"warnings":null,"status":"Fail","remediation-status":""}]}` + "\n",
+			expectError: false,
+			expectNil:   false,
 		},
 		{
 			name: "junit format with mixed results",
@@ -150,6 +162,8 @@ func TestFileOutput(t *testing.T) {
     </testsuite>
 </testsuites>
 `,
+			expectError: false,
+			expectNil:   false,
 		},
 		{
 			name: "unsupported format",
@@ -165,7 +179,27 @@ func TestFileOutput(t *testing.T) {
 					},
 				},
 			},
-			expected: "unsupported output format: unsupported",
+			expected:    "unsupported output format: unsupported",
+			expectError: true,
+			expectNil:   false,
+		},
+		{
+			name: "empty path",
+			file: &File{
+				Path:   "",
+				Format: "junit",
+			},
+			rl: &result.ResultList{
+				Results: []result.Result{
+					{
+						Name:   "test-check",
+						Status: result.Pass,
+					},
+				},
+			},
+			expected:    "",
+			expectError: false,
+			expectNil:   true,
 		},
 	}
 
@@ -188,9 +222,15 @@ func TestFileOutput(t *testing.T) {
 			// Test the Output method
 			output, err := tc.file.Output(tc.rl)
 
-			if tc.file.Format == "unsupported" || tc.file.Path == "" {
+			if tc.expectError {
 				assert.Error(err)
 				assert.Contains(err.Error(), tc.expected)
+				return
+			}
+
+			if tc.expectNil {
+				assert.NoError(err)
+				assert.Nil(output, "Output should be nil when path is empty")
 				return
 			}
 
@@ -267,10 +307,11 @@ func TestFileOutputDirectoryCreation(t *testing.T) {
 
 func TestFileOutputErrorHandling(t *testing.T) {
 	tt := []struct {
-		name     string
-		file     *File
-		rl       *result.ResultList
-		expected string
+		name        string
+		file        *File
+		rl          *result.ResultList
+		expected    string
+		expectError bool
 	}{
 		{
 			name: "read-only directory",
@@ -278,8 +319,9 @@ func TestFileOutputErrorHandling(t *testing.T) {
 				Path:   "/readonly/results.xml",
 				Format: "junit",
 			},
-			rl:       &result.ResultList{},
-			expected: "failed to create output directory",
+			rl:          &result.ResultList{},
+			expected:    "failed to create output directory",
+			expectError: true,
 		},
 		{
 			name: "invalid path",
@@ -287,8 +329,9 @@ func TestFileOutputErrorHandling(t *testing.T) {
 				Path:   "/dev/null/results.xml", // This path should be invalid on most systems
 				Format: "junit",
 			},
-			rl:       &result.ResultList{},
-			expected: "failed to create output directory",
+			rl:          &result.ResultList{},
+			expected:    "failed to create output directory",
+			expectError: true,
 		},
 		{
 			name: "empty path",
@@ -296,8 +339,9 @@ func TestFileOutputErrorHandling(t *testing.T) {
 				Path:   "",
 				Format: "junit",
 			},
-			rl:       &result.ResultList{},
-			expected: "failed to write output file: open : no such file or directory",
+			rl:          &result.ResultList{},
+			expected:    "", // No error expected, should return nil
+			expectError: false,
 		},
 		{
 			name: "invalid format",
@@ -305,8 +349,9 @@ func TestFileOutputErrorHandling(t *testing.T) {
 				Path:   "testdata/results.txt",
 				Format: "invalid",
 			},
-			rl:       &result.ResultList{},
-			expected: "unsupported output format: invalid",
+			rl:          &result.ResultList{},
+			expected:    "unsupported output format: invalid",
+			expectError: true,
 		},
 	}
 
@@ -323,11 +368,14 @@ func TestFileOutputErrorHandling(t *testing.T) {
 			}
 
 			// Test the Output method
-			_, err := tc.file.Output(tc.rl)
-			if err != nil {
+			output, err := tc.file.Output(tc.rl)
+
+			if tc.expectError {
+				assert.Error(err)
 				assert.Contains(err.Error(), tc.expected)
 			} else {
-				t.Error("expected an error but got none")
+				assert.NoError(err)
+				assert.Nil(output, "Output should be nil when path is empty")
 			}
 		})
 	}

@@ -24,8 +24,19 @@ func init() {
 }
 
 func (p *File) Output(rl *result.ResultList) ([]byte, error) {
+	// If no path is provided, skip file output
+	if p.Path == "" {
+		return nil, nil
+	}
+
 	var buf bytes.Buffer
-	switch p.Format {
+	// Use the same format as stdout
+	format := s.Format
+	if p.Format != "" {
+		format = p.Format
+	}
+
+	switch format {
 	case "pretty":
 		s := &Stdout{}
 		s.Pretty(rl, &buf)
@@ -42,7 +53,7 @@ func (p *File) Output(rl *result.ResultList) ([]byte, error) {
 		s := &Stdout{}
 		s.JUnit(rl, &buf)
 	default:
-		return nil, fmt.Errorf("unsupported output format: %s", p.Format)
+		return nil, fmt.Errorf("unsupported output format: %s", format)
 	}
 
 	// Create directory if it doesn't exist
