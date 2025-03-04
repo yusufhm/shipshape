@@ -20,5 +20,5 @@ output:
   stdout:
     format: table
   file:
-    path: results.junit
+    path: results.xml
     format: junit
