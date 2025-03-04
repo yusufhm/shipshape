@@ -19,5 +19,5 @@ output:
   stdout:
     format: table
   file:
-    - path: results.junit
-      format: junit
+    path: results.junit
+    format: junit
