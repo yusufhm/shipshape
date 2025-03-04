@@ -14,6 +14,9 @@ type File struct {
 	// Plugin-specific fields.
 	Path   string `yaml:"path"`
 	Format string `yaml:"format"`
+	// Track if values were set by flags
+	pathSetByFlag   bool
+	formatSetByFlag bool
 }
 
 var f = &File{}
@@ -21,6 +24,12 @@ var f = &File{}
 func init() {
 	// Register the file outputter
 	Outputters["file"] = f
+}
+
+// WasSetByFlag implements the FlagAware interface
+func (p *File) WasSetByFlag() bool {
+	// Consider values set by flag if either path or format was set
+	return p.pathSetByFlag || p.formatSetByFlag
 }
 
 func (p *File) Output(rl *result.ResultList) ([]byte, error) {

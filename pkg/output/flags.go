@@ -45,6 +45,16 @@ func (f *Stdout) AddFlags(c *cobra.Command) {
 	c.Flags().StringVarP(&f.Format, "output-format",
 		"o", "pretty", `Output format [pretty|table|json|junit]
 (env: SHIPSHAPE_OUTPUT_FORMAT)`)
+
+	oldPreRun := c.PreRun
+	c.PreRun = func(cmd *cobra.Command, args []string) {
+		if cmd.Flags().Changed("output-format") {
+			f.formatSetByFlag = true
+		}
+		if oldPreRun != nil {
+			oldPreRun(cmd, args)
+		}
+	}
 }
 
 func (f *File) AddFlags(c *cobra.Command) {
@@ -54,11 +64,27 @@ func (f *File) AddFlags(c *cobra.Command) {
 	c.Flags().StringVar(&f.Format, "output-file-format",
 		"", `Format for the output file [pretty|table|json|junit]
 (env: SHIPSHAPE_OUTPUT_FILE_FORMAT)`)
+
+	oldPreRun := c.PreRun
+	c.PreRun = func(cmd *cobra.Command, args []string) {
+		if cmd.Flags().Changed("output-file") {
+			f.pathSetByFlag = true
+		}
+		if cmd.Flags().Changed("output-file-format") {
+			f.formatSetByFlag = true
+		}
+		if oldPreRun != nil {
+			oldPreRun(cmd, args)
+		}
+	}
 }
 
 func (f *Stdout) EnvironmentOverrides() {
 	if outputFormatEnv := os.Getenv("SHIPSHAPE_OUTPUT_FORMAT"); outputFormatEnv != "" {
-		f.Format = outputFormatEnv
+		if !f.formatSetByFlag {
+			f.Format = outputFormatEnv
+			f.formatSetByFlag = true
+		}
 	}
 
 	if !f.ValidateOutputFormat() {
@@ -69,14 +95,19 @@ func (f *Stdout) EnvironmentOverrides() {
 
 func (f *File) EnvironmentOverrides() {
 	if outputFileEnv := os.Getenv("SHIPSHAPE_OUTPUT_FILE"); outputFileEnv != "" {
-		f.Path = outputFileEnv
+		if !f.pathSetByFlag {
+			f.Path = outputFileEnv
+			f.pathSetByFlag = true
+		}
 	}
 
 	if outputFileFormatEnv := os.Getenv("SHIPSHAPE_OUTPUT_FILE_FORMAT"); outputFileFormatEnv != "" {
-		f.Format = outputFileFormatEnv
+		if !f.formatSetByFlag {
+			f.Format = outputFileFormatEnv
+			f.formatSetByFlag = true
+		}
 	}
 
-	// Only validate if a format is specified
 	if f.Format != "" && !f.ValidateOutputFormat() {
 		log.Fatalf("Invalid output file format; needs to be one of: %s.",
 			strings.Join(OutputFormats, "|"))

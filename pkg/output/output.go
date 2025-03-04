@@ -14,6 +14,11 @@ type Outputter interface {
 	Output(*result.ResultList) ([]byte, error)
 }
 
+// FlagAware is an interface for outputters that can track if their values were set by flags
+type FlagAware interface {
+	WasSetByFlag() bool
+}
+
 var Outputters = map[string]Outputter{}
 
 func RegistryKeys() []string {
@@ -31,6 +36,15 @@ func ParseConfig(raw map[string]interface{}, rl *result.ResultList) {
 	for pluginName, pluginMap := range raw {
 		o, ok := Outputters[pluginName]
 		if !ok {
+			continue
+		}
+
+		// Check if the outputter implements FlagAware and if values were set by flags
+		if flagAware, ok := o.(FlagAware); ok && flagAware.WasSetByFlag() {
+			log.WithFields(log.Fields{
+				"plugin": pluginName,
+			}).Debug("skipping config for outputter as values were set by flags")
+			count++
 			continue
 		}
 
