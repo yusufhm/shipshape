@@ -14,4 +14,11 @@ analyse:
     regex:not-match:
       description: Lagoon logs module is not enabled
       input: module-lagoon_logs
-      pattern: "^0$"
+      pattern: "^1$"
+
+output:
+  stdout:
+    format: table
+  file:
+    path: results.xml
+    format: junit

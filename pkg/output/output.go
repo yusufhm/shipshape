@@ -14,6 +14,11 @@ type Outputter interface {
 	Output(*result.ResultList) ([]byte, error)
 }
 
+// FlagAware is an interface for outputters that can track if their values were set by flags
+type FlagAware interface {
+	WasSetByFlag() bool
+}
+
 var Outputters = map[string]Outputter{}
 
 func RegistryKeys() []string {
@@ -34,6 +39,15 @@ func ParseConfig(raw map[string]interface{}, rl *result.ResultList) {
 			continue
 		}
 
+		// Check if the outputter implements FlagAware and if values were set by flags
+		if flagAware, ok := o.(FlagAware); ok && flagAware.WasSetByFlag() {
+			log.WithFields(log.Fields{
+				"plugin": pluginName,
+			}).Debug("skipping config for outputter as values were set by flags")
+			count++
+			continue
+		}
+
 		// Convert the map to yaml, then parse it into the plugin.
 		// Not catching any errors here since the yaml content is known.
 		pluginYaml, _ := yaml.Marshal(pluginMap)
@@ -46,14 +60,30 @@ func ParseConfig(raw map[string]interface{}, rl *result.ResultList) {
 }
 
 func OutputAll(rl *result.ResultList, w io.Writer) error {
-	for _, p := range Outputters {
-		buf, err := p.Output(rl)
+	// Only write stdout outputter results to stdout
+	if stdout, ok := Outputters["stdout"]; ok {
+		buf, err := stdout.Output(rl)
 		if err != nil {
 			return err
 		}
 
 		if _, err := w.Write(buf); err != nil {
 			return err
+		}
+	}
+
+	// Process other outputters (like file) without writing to stdout
+	for name, p := range Outputters {
+		if name == "stdout" {
+			continue
+		}
+		buf, err := p.Output(rl)
+		if err != nil {
+			return err
+		}
+		// Skip if the outputter returned nil (e.g., file outputter with no path)
+		if buf == nil {
+			continue
 		}
 	}
 	return nil

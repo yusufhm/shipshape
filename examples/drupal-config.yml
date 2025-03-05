@@ -72,7 +72,7 @@ output:
   stdout:
     format: json
   file:
-    path: /results.junit
+    path: /results.xml
     format: junit
   lagoon.problems:
     api_key:

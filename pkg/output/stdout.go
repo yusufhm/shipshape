@@ -18,6 +18,8 @@ type Stdout struct {
 	// Plugin-specific fields.
 	// Format is the output format. One of "pretty", "table", "json", "junit".
 	Format string `yaml:"format"`
+	// Track if values were set by flags
+	formatSetByFlag bool
 }
 
 var OutputFormats = []string{"json", "pretty", "table", "junit"}
@@ -25,6 +27,11 @@ var s = &Stdout{Format: "pretty"}
 
 func init() {
 	Outputters["stdout"] = s
+}
+
+// WasSetByFlag implements the FlagAware interface
+func (p *Stdout) WasSetByFlag() bool {
+	return p.formatSetByFlag
 }
 
 func (p *Stdout) Output(rl *result.ResultList) ([]byte, error) {

@@ -51,7 +51,11 @@ analyse:
 # Optional - Configure output format and other output plugin options.
 # Defaults to stdout with the pretty format.
 output:
-  ...
+  stdout:
+    format: pretty  # Format for stdout output
+  file:
+    path: results/output.xml  # File to write output to
+    format: junit  # Format for file output
 ```
 
 Create a config file:
@@ -88,7 +92,7 @@ Execute the policy:
 shipshape run .
 ```
 
-```
+```sh
 $ shipshape run -h
 Execute policies against the specified directory
 
@@ -108,8 +112,11 @@ Flags:
       --lagoon-insights-remote-endpoint string   Insights Remote Problems endpoint
                                                   (default "http://lagoon-remote-insights-remote.lagoon.svc/problems")
       --lagoon-push-problems-to-insights         Push audit facts to Lagoon via Insights Remote
-  -o, --output string                            Output format [json|junit|simple|table]
-                                                 (env: SHIPSHAPE_OUTPUT_FORMAT) (default "simple")
+  -o, --output-format string                     Output format for stdout [pretty|table|json|junit]
+                                                 (overrides config file)
+      --output-file string                       File to write output to
+      --output-file-format string                Format for file output [pretty|table|json|junit]
+                                                 (defaults to stdout format)
   -r, --remediate                                Run remediation for supported checks
 
 Global Flags:
