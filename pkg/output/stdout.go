@@ -219,7 +219,7 @@ func (p *Stdout) JUnit(rl *result.ResultList, w io.Writer) {
 		for _, plc := range policies {
 			tc := JUnitTestCase{
 				Name:      plc,
-				ClassName: plc,
+				ClassName: pplugin,
 				Errors:    []JUnitError{},
 			}
 

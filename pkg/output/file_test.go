@@ -155,8 +155,8 @@ func TestFileOutput(t *testing.T) {
 			expected: `<?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="0" errors="0">
     <testsuite name="test-check" tests="0" errors="0">
-        <testcase name="a" classname="a"></testcase>
-        <testcase name="b" classname="b">
+        <testcase name="a" classname="test-check"></testcase>
+        <testcase name="b" classname="test-check">
             <error message="Fail b"></error>
         </testcase>
     </testsuite>

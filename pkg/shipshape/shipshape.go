@@ -154,6 +154,16 @@ func RunV2() {
 	}
 
 	RunResultList = result.NewResultList(Remediate)
+
+	log.Print("mapping policies to plugins and incrementing check counters")
+	RunResultList.Policies = map[string][]string{}
+	for id, pluginConf := range RunConfigV2.Analyse {
+		for pluginName := range pluginConf {
+			RunResultList.Policies[pluginName] = append(RunResultList.Policies[pluginName], id)
+			RunResultList.IncrChecks(pluginName, 1)
+		}
+	}
+
 	log.Print("parsing output config")
 	output.ParseConfig(RunConfigV2.Output, &RunResultList)
 
