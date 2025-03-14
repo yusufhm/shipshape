@@ -49,6 +49,11 @@ func (m *manager) ParseConfig(raw map[string]map[string]interface{}) error {
 				return err
 			}
 
+			// Ensure the CheckType is set on the Result
+			if analyser, ok := plugin.(interface{ SetCheckType(string) }); ok {
+				analyser.SetCheckType(pluginName)
+			}
+
 			log.WithFields(log.Fields{
 				"id":          id,
 				"plugin":      plugin.GetName(),

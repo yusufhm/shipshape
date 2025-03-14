@@ -32,10 +32,14 @@ func (p *BaseAnalyser) GetBreachTemplate() breach.BreachTemplate {
 	return p.BreachTemplate
 }
 
-func (p *BaseAnalyser) GetResult() result.Result {
-	if p.Description != "" && p.Result.Name != p.Description {
-		p.Result.Name = p.Description
+// SetCheckType sets the CheckType on the Result if it's not already set
+func (p *BaseAnalyser) SetCheckType(checkType string) {
+	if p.Result.CheckType == "" {
+		p.Result.CheckType = checkType
 	}
+}
+
+func (p *BaseAnalyser) GetResult() result.Result {
 	if p.Severity != "" {
 		p.Result.Severity = p.Severity
 	}

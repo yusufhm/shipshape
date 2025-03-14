@@ -247,7 +247,7 @@ func TestJUnit(t *testing.T) {
 			expected: `<?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="0" errors="0">
     <testsuite name="test-check" tests="0" errors="0">
-        <testcase name="a" classname="a"></testcase>
+        <testcase name="a" classname="test-check"></testcase>
     </testsuite>
 </testsuites>
 `,
@@ -268,9 +268,141 @@ func TestJUnit(t *testing.T) {
 			expected: `<?xml version="1.0" encoding="UTF-8"?>
 <testsuites tests="0" errors="0">
     <testsuite name="test-check" tests="0" errors="0">
-        <testcase name="a" classname="a"></testcase>
-        <testcase name="b" classname="b">
+        <testcase name="a" classname="test-check"></testcase>
+        <testcase name="b" classname="test-check">
             <error message="Fail b"></error>
+        </testcase>
+    </testsuite>
+</testsuites>
+`,
+		},
+		{
+			name: "singlePluginAllPass",
+			rl: result.ResultList{
+				TotalChecks: 3,
+				Policies: map[string][]string{
+					"regex:match": {"check1", "check2", "check3"},
+				},
+				CheckCountByType: map[string]int{
+					"regex:match": 3,
+				},
+				BreachCountByType: map[string]int{
+					"regex:match": 0,
+				},
+				Results: []result.Result{
+					{Name: "check1", Status: result.Pass, CheckType: "regex:match"},
+					{Name: "check2", Status: result.Pass, CheckType: "regex:match"},
+					{Name: "check3", Status: result.Pass, CheckType: "regex:match"},
+				},
+			},
+			expected: `<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" errors="0">
+    <testsuite name="regex:match" tests="3" errors="0">
+        <testcase name="check1" classname="regex:match"></testcase>
+        <testcase name="check2" classname="regex:match"></testcase>
+        <testcase name="check3" classname="regex:match"></testcase>
+    </testsuite>
+</testsuites>
+`,
+		},
+		{
+			name: "singlePluginWithFailures",
+			rl: result.ResultList{
+				TotalChecks:   3,
+				TotalBreaches: 2,
+				Policies: map[string][]string{
+					"regex:not-match": {"check1", "check2", "check3"},
+				},
+				CheckCountByType: map[string]int{
+					"regex:not-match": 3,
+				},
+				BreachCountByType: map[string]int{
+					"regex:not-match": 2,
+				},
+				Results: []result.Result{
+					{
+						Name:      "check1",
+						Status:    result.Fail,
+						CheckType: "regex:not-match",
+						Breaches: []breach.Breach{
+							&breach.ValueBreach{Value: "check1 failed"},
+						},
+					},
+					{
+						Name:      "check2",
+						Status:    result.Fail,
+						CheckType: "regex:not-match",
+						Breaches: []breach.Breach{
+							&breach.ValueBreach{Value: "check2 failed"},
+						},
+					},
+					{Name: "check3", Status: result.Pass, CheckType: "regex:not-match"},
+				},
+			},
+			expected: `<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="3" errors="2">
+    <testsuite name="regex:not-match" tests="3" errors="2">
+        <testcase name="check1" classname="regex:not-match">
+            <error message="check1 failed"></error>
+        </testcase>
+        <testcase name="check2" classname="regex:not-match">
+            <error message="check2 failed"></error>
+        </testcase>
+        <testcase name="check3" classname="regex:not-match"></testcase>
+    </testsuite>
+</testsuites>
+`,
+		},
+		{
+			name: "multiplePlugins",
+			rl: result.ResultList{
+				TotalChecks:   4,
+				TotalBreaches: 2,
+				Policies: map[string][]string{
+					"regex:match":     {"check1", "check2"},
+					"regex:not-match": {"check3", "check4"},
+				},
+				CheckCountByType: map[string]int{
+					"regex:match":     2,
+					"regex:not-match": 2,
+				},
+				BreachCountByType: map[string]int{
+					"regex:match":     1,
+					"regex:not-match": 1,
+				},
+				Results: []result.Result{
+					{Name: "check1", Status: result.Pass, CheckType: "regex:match"},
+					{
+						Name:      "check2",
+						Status:    result.Fail,
+						CheckType: "regex:match",
+						Breaches: []breach.Breach{
+							&breach.ValueBreach{Value: "check2 failed"},
+						},
+					},
+					{Name: "check3", Status: result.Pass, CheckType: "regex:not-match"},
+					{
+						Name:      "check4",
+						Status:    result.Fail,
+						CheckType: "regex:not-match",
+						Breaches: []breach.Breach{
+							&breach.ValueBreach{Value: "check4 failed"},
+						},
+					},
+				},
+			},
+			expected: `<?xml version="1.0" encoding="UTF-8"?>
+<testsuites tests="4" errors="2">
+    <testsuite name="regex:match" tests="2" errors="1">
+        <testcase name="check1" classname="regex:match"></testcase>
+        <testcase name="check2" classname="regex:match">
+            <error message="check2 failed"></error>
+        </testcase>
+    </testsuite>
+    <testsuite name="regex:not-match" tests="2" errors="1">
+        <testcase name="check3" classname="regex:not-match"></testcase>
+        <testcase name="check4" classname="regex:not-match">
+            <error message="check4 failed"></error>
         </testcase>
     </testsuite>
 </testsuites>
