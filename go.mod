@@ -2,7 +2,7 @@ module github.com/salsadigitalauorg/shipshape
 
 go 1.21.0
 
-toolchain go1.22.5
+toolchain go1.22.7
 
 require (
 	github.com/doug-martin/goqu/v9 v9.19.0
