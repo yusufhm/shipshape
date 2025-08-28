@@ -2,6 +2,7 @@ package analyse
 
 import (
 	"regexp"
+	"strings"
 
 	log "github.com/sirupsen/logrus"
 
@@ -19,6 +20,12 @@ type AllowedList struct {
 	Deprecated   []string `yaml:"deprecated"`
 	ExcludeKeys  []string `yaml:"exclude-keys"`
 	Ignore       []string `yaml:"ignore"`
+
+	// If a map is provided as input, Key is used to look up the value.
+	Key string `yaml:"key"`
+
+	// If NotStrict is false, only values that are in the Allowed list are allowed.
+	NotStrict bool `yaml:"not-strict"`
 }
 
 //go:generate go run ../../cmd/gen.go analyse-plugin --plugin=AllowedList --package=analyse
@@ -80,33 +87,79 @@ func (p *AllowedList) Analyse() {
 	case data.FormatMapString:
 		inputData := data.AsMapString(p.input.GetData())
 		foundRequired := map[string]bool{}
-		for k, v := range inputData {
-			if p.isExcludedKey(k) || p.isIgnored(v) {
-				continue
+
+		// If Key is specified, only process that specific key-value pair
+		if p.Key != "" {
+			v, exists := inputData[p.Key]
+			if !exists {
+				log.WithField("key", p.Key).Warning("specified key not found in input data")
+				return
 			}
 
-			if p.isDeprecated(v) {
-				breach.EvaluateTemplate(p, &breach.KeyValueBreach{
-					KeyLabel:   "key",
-					Key:        k,
-					ValueLabel: "deprecated",
-					Value:      v,
-				}, p.Remediation)
-				continue
-			}
+			// Split multiline string into individual lines and process each line
+			lines := strings.Split(v, "\n")
+			for _, line := range lines {
+				// Trim whitespace from each line
+				line = strings.TrimSpace(line)
 
-			if len(p.Required) == 0 && !p.isAllowed(v) {
-				breach.EvaluateTemplate(p, &breach.KeyValueBreach{
-					KeyLabel:   "key",
-					Key:        k,
-					ValueLabel: "disallowed",
-					Value:      v,
-				}, p.Remediation)
-				continue
-			}
+				// Skip empty lines
+				if line == "" {
+					continue
+				}
 
-			if len(p.Required) > 0 && p.isRequired(v) {
-				foundRequired[v] = true
+				if p.isIgnored(line) {
+					continue
+				}
+
+				if p.isDeprecated(line) {
+					breach.EvaluateTemplate(p, &breach.ValueBreach{
+						ValueLabel: "deprecated value found",
+						Value:      line,
+					}, p.Remediation)
+					continue
+				}
+
+				if !p.NotStrict && len(p.Required) == 0 && !p.isAllowed(line) {
+					breach.EvaluateTemplate(p, &breach.ValueBreach{
+						ValueLabel: "disallowed value found",
+						Value:      line,
+					}, p.Remediation)
+				}
+
+				if len(p.Required) > 0 && p.isRequired(line) {
+					foundRequired[line] = true
+				}
+			}
+		} else {
+			// If Key is not specified, process all key-value pairs (original behavior)
+			for k, v := range inputData {
+				if p.isExcludedKey(k) || p.isIgnored(v) {
+					continue
+				}
+
+				if p.isDeprecated(v) {
+					breach.EvaluateTemplate(p, &breach.KeyValueBreach{
+						KeyLabel:   "key",
+						Key:        k,
+						ValueLabel: "deprecated",
+						Value:      v,
+					}, p.Remediation)
+					continue
+				}
+
+				if !p.NotStrict && len(p.Required) == 0 && !p.isAllowed(v) {
+					breach.EvaluateTemplate(p, &breach.KeyValueBreach{
+						KeyLabel:   "key",
+						Key:        k,
+						ValueLabel: "disallowed",
+						Value:      v,
+					}, p.Remediation)
+					continue
+				}
+
+				if len(p.Required) > 0 && p.isRequired(v) {
+					foundRequired[v] = true
+				}
 			}
 		}
 

@@ -4,14 +4,16 @@ The `allowed:list` analyser checks if values in a list or map match against a li
 
 ## Configuration
 
-| Field         | Type     | Required | Description                                                |
-| ------------- | -------- | -------- | ---------------------------------------------------------- |
-| allowed       | []string | No       | List of allowed values                                     |
-| required      | []string | No       | List of values that must be present                        |
-| deprecated    | []string | No       | List of deprecated values to flag                          |
-| exclude-keys  | []string | No       | For map inputs, keys to exclude from validation            |
-| ignore        | []string | No       | List of values to ignore during validation                 |
-| package-match | string   | No       | If set, treats values as packages and matches package names |
+| Field         | Type     | Required | Description                                                       |
+| ------------- | -------- | -------- | ----------------------------------------------------------------- |
+| allowed       | []string | No       | List of allowed values                                            |
+| required      | []string | No       | List of values that must be present                               |
+| deprecated    | []string | No       | List of deprecated values to flag                                 |
+| exclude-keys  | []string | No       | For map inputs, keys to exclude from validation                   |
+| ignore        | []string | No       | List of values to ignore during validation                        |
+| package-match | string   | No       | If set, treats values as packages and matches package names       |
+| key           | string   | No       | For map inputs, uses the value here to lookup the map             |
+| not-strict    | boolean  | No       | When false (default), any value not in the allowed list will fail |
 
 <Content :page-key="$site.pages.find(p => p.path === '/reference/common/analyse.html').key"/>
 
