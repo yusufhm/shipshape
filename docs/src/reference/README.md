@@ -17,6 +17,7 @@ The following Collect/Fact plugins are available:
   - [file:lookup](../reference/collect/file-lookup)
   - [file:read](../reference/collect/file-read)
   - [file:read:multiple](../reference/collect/file-read-multiple)
+  - [static-analysis](../reference/collect/static-analysis)
   - [yaml:key](../reference/collect/yaml-key)
 
 ## Analyse plugins
@@ -28,6 +29,7 @@ The following Analyse plugins are available:
   - [not:equals](../reference/analyse/not-equals)
   - [regex:match](../reference/analyse/regex-match)
   - [regex:not-match](../reference/analyse/regex-not-match)
+  - [static-analysis:breaches](../reference/analyse/static-analysis)
 
 ## Remediation plugins
 

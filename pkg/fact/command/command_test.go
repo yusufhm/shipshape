@@ -83,13 +83,13 @@ func TestCommandCollect(t *testing.T) {
 			Name: "multiline",
 			FactFn: func() fact.Facter {
 				f := New("TestCommand")
-				f.Cmd = "ls"
-				f.Args = []string{"-1"}
+				f.Cmd = "printf"
+				f.Args = []string{"line1\\nline2"}
 				return f
 			},
 			ExpectedFormat: data.FormatMapString,
 			ExpectedData: map[string]string{
-				"code": "0", "stderr": "", "stdout": "command.go\ncommand_test.go",
+				"code": "0", "stderr": "", "stdout": "line1\nline2",
 			},
 		},
 	}

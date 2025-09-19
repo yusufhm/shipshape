@@ -1,0 +1,65 @@
+collect:
+  # PHPStan static analysis using the new tool-agnostic plugin
+  phpstan-check:
+    static-analysis:
+      tool: phpstan
+      # Option 1: Use environment variable with fallback (requires resolve-env: true)
+      config: ${PHPSTAN_CONFIG:-/etc/phpstan-caching.neon}
+      # Option 2: Use a simple static path (uncomment to use instead)
+      # config: phpstan.neon
+      paths: [web/themes/custom]
+      output-format: table
+      resolve-env: true  # Enable environment variable substitution
+
+  # For ESLint, you could use:
+  # eslint-check:
+  #   static-analysis:
+  #     tool: eslint
+  #     paths: ["src/**/*.js", "tests/**/*.js"]
+  #     args: [--ext, .js,.ts, --max-warnings, "0"]
+  #     output-format: json
+  #
+  # For Pylint, you could use:
+  # pylint-check:
+  #   static-analysis:
+  #     tool: pylint
+  #     paths: [src/]
+  #     presets:
+  #       disable: "C0111,R0903"
+  #       output-format: json
+  #
+  # For custom tools:
+  # custom-linter:
+  #   static-analysis:
+  #     tool: custom
+  #     binary: /usr/local/bin/my-linter
+  #     args: [analyze, --strict, --output=json]
+  #     paths: [src/]
+
+analyse:
+  # Simple, powerful analysis using the new plugin
+  phpstan-issues:
+    static-analysis:breaches:
+      description: 'PHPStan found code quality issues'
+      input: phpstan-check
+      severity: high
+      max-issues: 0  # Fail on any issues found
+      check-success: true  # Check that the tool ran successfully
+      check-issues: true   # Check for issues in output
+
+  # Advanced example with filtering:
+  # phpstan-critical-only:
+  #   static-analysis:breaches:
+  #     description: 'PHPStan found critical issues'
+  #     input: phpstan-check
+  #     severity: critical
+  #     min-severity: error          # Only report errors, not warnings
+  #     ignore-rules: ["unused.var"] # Ignore specific rules
+  #     max-issues: 5               # Allow up to 5 issues
+
+output:
+  stdout:
+    format: table
+  file:
+    path: static-analysis-results.xml
+    format: junit
