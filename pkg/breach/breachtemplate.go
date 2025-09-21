@@ -184,11 +184,17 @@ var TemplateFuncs = template.FuncMap{
 	
 	// String formatting and truncation
 	"truncate": func(length int, s string) string {
+		if length <= 0 {
+			return ""
+		}
 		if len(s) <= length {
 			return s
 		}
 		if length <= 3 {
-			return s[:length]
+			if length <= len(s) {
+				return s[:length]
+			}
+			return s
 		}
 		return s[:length-3] + "..."
 	},
@@ -379,6 +385,10 @@ var TemplateFuncs = template.FuncMap{
 
 // Helper functions for template functions
 func humanizeNumber(n int64) string {
+	if n < 0 {
+		return "-" + humanizeNumber(-n)
+	}
+	
 	if n < 1000 {
 		return strconv.FormatInt(n, 10)
 	}
@@ -399,9 +409,10 @@ func humanizeNumber(n int64) string {
 }
 
 func humanizeString(s string) string {
-	// Convert snake_case and kebab-case to Title Case
+	// Convert snake_case, kebab-case, and dot-case to Title Case
 	s = strings.ReplaceAll(s, "_", " ")
 	s = strings.ReplaceAll(s, "-", " ")
+	s = strings.ReplaceAll(s, ".", " ")
 	
 	// Capitalize first letter of each word
 	words := strings.Fields(s)
@@ -414,6 +425,10 @@ func humanizeString(s string) string {
 }
 
 func humanizeBytes(size int64) string {
+	if size < 0 {
+		return "-" + humanizeBytes(-size)
+	}
+	
 	const unit = 1024
 	if size < unit {
 		return fmt.Sprintf("%d B", size)
@@ -504,7 +519,9 @@ func colorizeText(color, text string) string {
 		"bg-white":   "\033[47m",
 	}
 	
-	if colorCode, ok := colors[strings.ToLower(color)]; ok {
+	// Convert to lowercase for case-insensitive matching
+	lowerColor := strings.ToLower(color)
+	if colorCode, ok := colors[lowerColor]; ok {
 		return fmt.Sprintf("%s%s\033[0m", colorCode, text)
 	}
 	return text // Return unmodified if color not found
