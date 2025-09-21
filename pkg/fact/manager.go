@@ -2,7 +2,6 @@ package fact
 
 import (
 	"fmt"
-	"reflect"
 
 	log "github.com/sirupsen/logrus"
 	"gopkg.in/yaml.v3"
@@ -29,7 +28,7 @@ var OnlyFactNames = []string{}
 // Manager returns the fact manager.
 func Manager() *manager {
 	if m == nil {
-		// Add template functions for fact lookup
+		// Add a template function to lookup a fact as a string map.
 		breach.TemplateFuncs["lookupFactAsStringMap"] = func(inputName string, key string) string {
 			input := Manager().FindPlugin(inputName)
 			if input == nil {
@@ -41,50 +40,6 @@ func Manager() *manager {
 				return ""
 			}
 			return val.(string)
-		}
-		
-		// Generic lookup function that handles different data types
-		breach.TemplateFuncs["lookup"] = func(inputName string, key string) interface{} {
-			input := Manager().FindPlugin(inputName)
-			if input == nil {
-				return nil
-			}
-			
-			data := input.GetData()
-			if data == nil {
-				return nil
-			}
-			
-			// Handle map[string]interface{}
-			if ifcMap, ok := data.(map[string]interface{}); ok {
-				return ifcMap[key]
-			}
-			
-			// Handle map[string]string
-			if strMap, ok := data.(map[string]string); ok {
-				return strMap[key]
-			}
-			
-			// Handle other map types through reflection
-			rv := reflect.ValueOf(data)
-			if rv.Kind() == reflect.Map {
-				keyValue := reflect.ValueOf(key)
-				mapValue := rv.MapIndex(keyValue)
-				if mapValue.IsValid() {
-					return mapValue.Interface()
-				}
-			}
-			
-			return nil
-		}
-		
-		// Lookup with default value
-		breach.TemplateFuncs["lookupDefault"] = func(inputName string, key string, defaultValue interface{}) interface{} {
-			result := breach.TemplateFuncs["lookup"].(func(string, string) interface{})(inputName, key)
-			if result == nil {
-				return defaultValue
-			}
-			return result
 		}
 
 		m = &manager{

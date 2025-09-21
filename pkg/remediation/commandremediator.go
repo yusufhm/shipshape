@@ -17,7 +17,6 @@ func init() {
 	Registry["command"] = func() Remediator { return &CommandRemediator{} }
 }
 
-
 func (p *CommandRemediator) Remediate() RemediationResult {
 	_, err := command.ShellCommander(p.Command, p.Arguments...).Output()
 	if err != nil {

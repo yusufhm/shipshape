@@ -38,20 +38,11 @@ analyse:
       pattern: '\[(.*)\]'
       ignore: '[current-user]'
       breach-format: &x-breach-format
-        # Legacy format (still supported)
         type: key-value
         key-label: webform
-        key: ' {{ lookup "webform-titles" .Breach.Key }}'
+        key: ' {{ lookupFactAsStringMap "webform-titles" .Breach.Key }}'
         value-label: 'Handler "{{ .Breach.ValueLabel }}" has token'
         value: '{{ .Breach.Value }}'
-        
-        # Enhanced template (overrides legacy format)
-        template: |
-          📧 {{ colorize "yellow" "Email Token Issue" }}
-          🎯 Form: {{ lookup "webform-titles" .Breach.Key | default "Unknown Form" | title }}
-          📝 Handler: {{ .Breach.ValueLabel | printf "\"%s\"" }}
-          🔧 Token: {{ .Breach.Value | colorize "red" }}
-          💡 Consider using static email addresses for better security
   wrong-cc-mail:
     regex:match:
       description: Found token in webform handler 'cc:' email field
