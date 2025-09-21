@@ -1,0 +1,127 @@
+collect:
+  webform-files:
+    file:lookup:
+      pattern: webform.webform.*.yml
+      file-names-only: false
+
+  webform-titles:
+    yaml:key:
+      input: webform-files
+      path: title
+
+  webform-handlers:
+    yaml:key:
+      input: webform-files
+      path: handlers
+      nodes-only: true
+
+  to-mail:
+    yaml:key:
+      input: webform-handlers
+      path: settings.to_mail
+
+  file-sizes:
+    file:lookup:
+      path: web/sites/default/files
+      pattern: '.*\.(jpg|png|gif|pdf)$'
+
+analyse:
+  # Example 1: Enhanced string formatting and conditional logic
+  tokenized-email-handlers:
+    regex:match:
+      description: Found problematic email tokens in webform handlers
+      input: to-mail
+      pattern: '\[(.*)\]'
+      ignore: '[current-user]'
+      breach-format:
+        template: |
+          {{ if eq .Severity "high" }}🚨{{ else if eq .Severity "medium" }}⚠️{{ else }}ℹ️{{ end }} {{ .Breach.Value | colorize "red" }}
+          📧 Handler: {{ .Breach.ValueLabel }}
+          🎯 Form: {{ lookup "webform-titles" .Breach.Key | default "Unknown Form" }}
+          💡 Suggestion: Use static email addresses instead of tokens
+
+  # Example 2: Format-specific templates
+  large-files-found:
+    not:empty:
+      description: Large files detected in public directory
+      input: file-sizes
+      breach-format:
+        templates:
+          pretty: |
+            📁 {{ len .Breach.Value }} {{ pluralize (len .Breach.Value) "file" "files" }} found:
+            {{ range .Breach.Value }}• {{ . | truncate 50 }} ({{ . | bytes }}){{ end }}
+          json: |
+            {"count": {{ len .Breach.Value }}, "files": [{{ range $i, $file := .Breach.Value }}{{ if $i }}, {{ end }}"{{ $file }}"{{ end }}]}
+          table: |
+            {{ len .Breach.Value }} files\t{{ .Breach.Value | join ", " | truncate 100 }}
+
+  # Example 3: Humanized numbers and advanced formatting
+  security-issues:
+    not:empty:
+      description: Security vulnerabilities detected
+      input: to-mail
+      breach-format:
+        template: |
+          🔒 {{ .CheckName | humanize }}
+          📊 {{ len .Breach.Value | humanize }} {{ pluralize (len .Breach.Value) "issue" "issues" }} found
+          {{ if gt (len .Breach.Value) 5 }}
+          ⚡ Showing first 5 of {{ len .Breach.Value }}:
+          {{ range slice 0 5 .Breach.Value }}• {{ . | title }}{{ end }}
+          ... and {{ sub (len .Breach.Value) 5 }} more
+          {{ else }}
+          {{ range .Breach.Value }}• {{ . | title }}{{ end }}
+          {{ end }}
+
+  # Example 4: Context-aware templates with custom data
+  configuration-mismatch:
+    not-equal:
+      description: Configuration does not match expected values
+      input: to-mail
+      value: expected_value
+      breach-format:
+        context:
+          environment: "production"
+          team: "security"
+        template: |
+          {{ if eq .Context.environment "production" }}🔴 PRODUCTION ALERT{{ else }}🟡 DEV NOTICE{{ end }}
+          
+          Configuration Issue Detected:
+          • Expected: {{ .Breach.ExpectedValue | upper }}
+          • Found: {{ .Breach.Value | upper }}
+          • Environment: {{ .Context.environment | title }}
+          • Team: {{ .Context.team | title }}
+          
+          {{ if eq .OutputFormat "pretty" }}
+          {{ .Breach.Value | colorize "red" | bold }}
+          {{ end }}
+
+  # Example 5: Regular expression template functions
+  email-validation:
+    regex:match:
+      description: Invalid email format detected
+      input: to-mail
+      pattern: '.*@.*'
+      breach-format:
+        template: |
+          📧 Email Validation Issue
+          {{ if regexMatch "^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$" .Breach.Value }}
+          ✅ Format appears valid: {{ .Breach.Value }}
+          {{ else }}
+          ❌ Invalid format: {{ .Breach.Value | colorize "red" }}
+          💡 Expected format: user@domain.com
+          {{ end }}
+
+  # Example 6: Date and time formatting
+  timestamp-check:
+    not:empty:
+      description: Timestamp analysis
+      input: file-sizes
+      breach-format:
+        template: |
+          🕐 Analysis completed at {{ now | date "2006-01-02 15:04:05" }}
+          📈 Found {{ len .Breach.Value }} {{ pluralize (len .Breach.Value) "item" "items" }}
+          ⏱️ Report generated in {{ .OutputFormat }} format
+
+output:
+  stdout:
+    format: pretty
